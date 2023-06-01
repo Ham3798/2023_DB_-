@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const Header = () => {
+const Header = ({ setPage }) => {
+  const handleButtonClick = (value) => {
+    setPage(value);
+  };
+
   return (
     <div>
-        <button type="submit" value={1}>CarSearchForm</button>
-        <button type="submit" value={2}>ReservationInfo</button>
+      <button type="submit" value={1} onClick={() => handleButtonClick(1)}>
+        CarSearchForm
+      </button>
+      <button type="submit" value={2} onClick={() => handleButtonClick(2)}>
+        ReservationInfo
+      </button>
     </div>
   );
 };

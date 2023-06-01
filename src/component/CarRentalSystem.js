@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import LoginForm from './LoginForm'; // LoginForm 컴포넌트 임포트
 import Header from  './Header';
+import './styles.css'; // CSS 파일을 import
 import CarSearchForm from './CarSearchForm'; // CarSearchForm 컴포넌트 임포트
 import CarSearchResults from './CarSearchResults'; // CarSearchResults 컴포넌트 임포트
 import ReservationInfo from './ReservationInfo'; // ReservationInfo 컴포넌트 임포트
@@ -149,7 +150,7 @@ const searchRentalHistory = (status) => {
       )}
 
       {customer && (
-        <Header />
+        <Header setPage={setPage} />
       )}
       {/* 렌터카 검색 컴포넌트 */}
       {customer && page == 1 && (
