@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import LoginForm from './LoginForm'; // LoginForm 컴포넌트 임포트
+import Header from  './Header';
 import CarSearchForm from './CarSearchForm'; // CarSearchForm 컴포넌트 임포트
 import CarSearchResults from './CarSearchResults'; // CarSearchResults 컴포넌트 임포트
 import ReservationInfo from './ReservationInfo'; // ReservationInfo 컴포넌트 임포트
@@ -8,6 +9,7 @@ import RentalHistoryList from './RentalHistoryList'; // RentalHistoryList 컴포
 
 
 const CarRentalSystem = () => {
+  const [page, setPage] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [reservation, setReservation] = useState(null);
@@ -19,12 +21,11 @@ const CarRentalSystem = () => {
       // 로그인 성공 여부 확인
       if (customerNumber === '1' && password === '1') {
         const customerData = {
-          "customerNumber" : customerNumber,
-          "password" : password
+          customerNumber : customerNumber,
+          password : password
         };
-        console.log(customerData);
         setCustomer(customerData);
-        console.log(customer);
+        setPage(1);
       } else {
         // 로그인 실패 처리
         console.log('로그인 실패');
@@ -40,9 +41,9 @@ const searchCars = (startDate, endDate, carTypes) => {
 
   // 예시로 검색 결과를 생성하여 setSearchResults를 호출합니다.
   const searchResultsData = [
-    { id: 1, carName: '전기차 A', carType: '전기차' },
-    { id: 2, carName: '소형 B', carType: '소형' },
-    { id: 3, carName: '대형 C', carType: '대형' },
+    { id: 1, carName: '전기차 A', fee: 500, carType: '전기차' },
+    { id: 2, carName: '소형 B', fee: 600, carType: '소형' },
+    { id: 3, carName: '대형 C', fee: 700, carType: '대형' },
   ];
 
   // 검색 결과를 상태로 업데이트합니다.
@@ -107,8 +108,6 @@ const updateRentalHistory = (rentalData) => {
   setRentalHistory(updatedRentalHistory);
 };
 
-
-
 const returnCar = (rentalId) => {
   // 반납 로직 구현
   // 실제로는 데이터베이스나 API와의 통신 등을 통해 반납 동작을 수행해야 합니다.
@@ -149,21 +148,24 @@ const searchRentalHistory = (status) => {
         <LoginForm onLogin={loginCustomer} />
       )}
 
+      {customer && (
+        <Header />
+      )}
       {/* 렌터카 검색 컴포넌트 */}
-      {customer && !reservation && (
+      {customer && page == 1 && (
         <CarSearchForm onSearch={searchCars} />
       )}
 
       {/* 렌터카 검색 결과 */}
-      {searchResults.length > 0 && (
+      {customer && page == 1 && searchResults.length > 0 && (
         <CarSearchResults
           results={searchResults}
-          onReserve={makeReservation}
+          onDetails={makeReservation}
         />
       )}
 
       {/* 예약 정보 */}
-      {reservation && (
+      {reservation && page == 1  && (
         <ReservationInfo
           reservation={reservation}
           onCancel={cancelReservation}
@@ -172,12 +174,12 @@ const searchRentalHistory = (status) => {
       )}
 
       {/* 대여 내역 검색 */}
-      {customer && (
+      {customer && page == 3 && (
         <RentalHistorySearchForm onSearch={searchRentalHistory} />
       )}
 
       {/* 대여 내역 */}
-      {rentalHistory.length > 0 && (
+      {rentalHistory.length > 0 && page == 3 && (
         <RentalHistoryList rentals={rentalHistory} />
         )}
 
