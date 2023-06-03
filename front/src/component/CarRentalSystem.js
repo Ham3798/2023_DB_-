@@ -8,22 +8,24 @@ import ReservationInfo from './ReservationInfo'; // ReservationInfo 컴포넌트
 import RentalHistorySearchForm from './RentalHistorySearchForm'; // RentalHistorySearchForm 컴포넌트 임포트
 import RentalHistoryList from './RentalHistoryList'; // RentalHistoryList 컴포넌트 임포트
 
-
 const CarRentalSystem = () => {
   const [page, setPage] = useState(null);
+  const [resurveDate, setResurveDate] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [reservation, setReservation] = useState(null);
   const [rentalHistory, setRentalHistory] = useState([]);
 
-  const loginCustomer = (customerNumber, password) => {
-    // 서버와의 통신을 흉내 내기 위해 setTimeout 사용
-    setTimeout(() => {
-      // 로그인 성공 여부 확인
-      if (customerNumber === '1' && password === '1') {
+  const loginCustomer = async (customerNumber, password) => {
+    try {
+      const response = await fetch(`http://localhost:3001/customer/${customerNumber}/${password}`);
+      const data = await response.json();
+      if (response.ok) {
+        // 로그인 성공
+        console.log(data);
         const customerData = {
-          customerNumber : customerNumber,
-          password : password
+          customerNumber: data[0][0],
+          password: data[0][1]
         };
         setCustomer(customerData);
         setPage(1);
@@ -31,38 +33,67 @@ const CarRentalSystem = () => {
         // 로그인 실패 처리
         console.log('로그인 실패');
       }
-    }, 1000); // 1초 후에 결과 처리
+    } catch (error) {
+      // Handle any errors that occur during the request or login process
+      console.error('Error:', error);
+    }
   };
   
 
-  // 렌터카 검색
-const searchCars = (startDate, endDate, carTypes) => {
-  // 검색 로직 구현
-  // 실제로는 데이터베이스나 API와의 통신 등을 통해 데이터를 검색해야 합니다.
 
-  // 예시로 검색 결과를 생성하여 setSearchResults를 호출합니다.
-  const searchResultsData = [
-    { id: 1, carName: '전기차 A', fee: 500, carType: '전기차' },
-    { id: 2, carName: '소형 B', fee: 600, carType: '소형' },
-    { id: 3, carName: '대형 C', fee: 700, carType: '대형' },
-  ];
+// 렌터카 검색
+const searchCars = async (startDate, endDate, carTypes) => {
+  
+  try {
+    setResurveDate({startDate:startDate, endDate:endDate, carTypes:carTypes});
+    var searchResultsData = [];
+    console.log(startDate, endDate, carTypes);
+    const encodedStartDate = encodeURIComponent(startDate);
+    const encodedEndDate = encodeURIComponent(endDate);
+    const encodedCarTypes = encodeURIComponent(carTypes);
+    const response = await fetch(`http://localhost:3001/getCar/${encodedStartDate}/${encodedEndDate}/${encodedCarTypes}`);
 
-  // 검색 결과를 상태로 업데이트합니다.
-  setSearchResults(searchResultsData);
+    if (response.ok) {
+      const data = await response.json();
+      // 검색 결과를 상태로 업데이트합니다.
+      console.log(data);
+      setSearchResults(data);
+      for (let i = 0; i < data.length; i++) {
+        const cur = data[i];
+        console.log(carTypes.includes(cur[1]));
+        if (carTypes.includes('전체')) {
+          searchResultsData.push({MODELNAME:cur[0], VEHICLETYPE:cur[1], RENTRATEPERDAY:cur[2], FUEL:cur[3], NUMBEROFSEATS:cur[4]});
+        }
+        else if (carTypes.includes(cur[1])) {
+          searchResultsData.push({MODELNAME:cur[0], VEHICLETYPE:cur[1], RENTRATEPERDAY:cur[2], FUEL:cur[3], NUMBEROFSEATS:cur[4]});
+        }
+        
+      }
+      
+      // 검색 결과를 상태로 업데이트합니다.
+      setSearchResults(searchResultsData);
+    } else {
+      console.log('검색 실패');
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+  }
 };
 
 
+
+
   // 렌터카 예약
-const makeReservation = (carId) => {
+const makeReservation = (MODELNAME) => {
   // 예약 로직 구현
   // 실제로는 데이터베이스나 API와의 통신 등을 통해 예약을 생성해야 합니다.
 
   // 예시로 예약 데이터를 생성하여 setReservation을 호출합니다.
   const reservationData = {
-    id: 1,
-    carId: carId,
-    startDate: '2023-06-01',
-    endDate: '2023-06-05',
+    MODELNAME: MODELNAME,
+    startDate: resurveDate.startDate.toLocaleString(),
+    endDate: resurveDate.endDate.toLocaleString()
   };
 
   // 예약 데이터를 상태로 업데이트합니다.

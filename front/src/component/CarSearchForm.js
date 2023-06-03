@@ -16,6 +16,14 @@ const CarSearchForm = ({ onSearch }) => {
     setCarTypes(selectedCarTypes);
   };
 
+  const handleSelectAll = () => {
+    if (carTypes.length === 5) {
+      setCarTypes([]);
+    } else {
+      setCarTypes(['전체']);
+    }
+  };
+
   return (
     <div>
       <h2>렌터카 검색</h2>
@@ -31,7 +39,9 @@ const CarSearchForm = ({ onSearch }) => {
           onChange={(e) => setEndDate(new Date(e.target.value))}
         />
         <select multiple value={carTypes} onChange={handleCarTypeChange}>
-        <option value="전체">전체</option>
+          <option value="전체" onClick={handleSelectAll}>
+            전체
+          </option>
           <option value="전기차">전기차</option>
           <option value="소형">소형</option>
           <option value="대형">대형</option>
