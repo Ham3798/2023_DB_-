@@ -16,14 +16,14 @@ const CarSearchResults = ({ results, onDetails }) => {
         </thead>
         <tbody>
           {results.map((car) => (
-            <tr key={car.MODELNAME}>
+            <tr key={car.LICENSEPLATENO}>
+              <td>{car.LICENSEPLATENO}</td>
               <td>{car.MODELNAME}</td>
-              <td>{car.VEHICLETYPE}</td>
-              <td>{car.RENTRATEPERDAY}</td>
-              <td>{car.FUEL}</td>
-              <td>{car.NUMBEROFSEATS}</td>
+              <td>{car.DATERENTED}</td>
+              <td>{car.DATEDUE}</td>
+              <td>{car.CNO}</td>
               <td>
-                <button onClick={() => onDetails(car.MODELNAME)}>상세 정보</button>
+                <button onClick={() => onDetails(car.LICENSEPLATENO)}>상세 정보</button>
               </td>
             </tr>
           ))}

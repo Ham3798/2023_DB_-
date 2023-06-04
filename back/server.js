@@ -15,6 +15,67 @@ const dbConfig = {
 // CORS 설정
 app.use(cors());
 
+
+
+app.get('/cancelResurvation/:LICENSEPLATENO/:CNO', (req, res) => {
+  const LICENSEPLATENO = req.params.LICENSEPLATENO;
+  const CNO = req.params.CNO;
+  console.log(LICENSEPLATENO, CNO);
+
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+    
+    const query = `
+    DELETE FROM reserve
+    WHERE LICENSEPLATENO = '${LICENSEPLATENO}' and CNO = ${CNO}
+    `;
+    console.log(query);
+
+    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
+
+      res.status(200).json(result.rows);
+      connection.close();
+    });
+  });
+});
+
+app.get('/resurveHistory/:CNO', (req, res) => {
+  const CNO = req.params.CNO;
+
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+
+    const query = `
+      Select * from reserve WHERE CNO = ${CNO}
+    `;
+    
+    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
+
+      res.status(200).json(result.rows);
+
+      connection.close();
+    });
+  });
+});
+
+
+
 // GET /customer - 특정 cno 값과 동일한 고객 정보 조회
 app.get('/customer/:cno/:password', (req, res) => {
   // 데이터베이스 연결
@@ -77,25 +138,15 @@ console.log(vehicleTypes);
     }
 
     const query = `
-    SELECT *
-      FROM CARMODEL
-      WHERE MODELNAME NOT IN (
-        SELECT MODELNAME
-        FROM RENTCAR
-        WHERE MODELNAME IN (
-          SELECT MODELNAME
-          FROM CARMODEL
-          WHERE ${vehicleTypes}
-        )
-        AND EXISTS (
-          SELECT 1
-          FROM RESERVE
-          WHERE LICENSEPLATENO = RENTCAR.LICENSEPLATENO
-            AND (
-              STARTDATE <= TO_DATE('${endDate}', 'YYYY-MM-DD')
-              AND ENDDATE >= TO_DATE('${startDate}', 'YYYY-MM-DD')
-            )
-        )
+      SELECT *
+      FROM RENTCAR
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM RESERVE
+        WHERE LICENSEPLATENO = RENTCAR.LICENSEPLATENO
+          AND (
+            (STARTDATE <= TO_DATE('${endDate}', 'YYYY-MM-DD') AND ENDDATE >= TO_DATE('${startDate}', 'YYYY-MM-DD'))
+          )
       )
     `;
     
@@ -112,6 +163,49 @@ console.log(vehicleTypes);
     });
   });
 });
+
+
+app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res) => {
+  const STARTDATE = new Date(req.params.startDate).toISOString().split("T")[0];
+  const ENDDATE = new Date(req.params.endDate).toISOString().split("T")[0];
+  const carTypes = req.params.carTypes;
+  const LICENSEPLATENO = req.params.LICENSEPLATENO;
+  const CNO = req.params.CNO;
+
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const day = String(currentDate.getDate()).padStart(2, '0');
+
+  const formattedDate = `${year}-${month}-${day}`;
+  
+  console.log(new Date(formattedDate).toISOString().split("T")[0]);
+  
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+
+    const query = `
+      INSERT INTO RESERVE (LICENSEPLATENO, RESERVEDATE, STARTDATE, ENDDATE, CNO)
+      VALUES ('${LICENSEPLATENO}', TO_DATE('${new Date(formattedDate).toISOString().split("T")[0]}', 'YYYY-MM-DD'), TO_DATE('${STARTDATE}', 'YYYY-MM-DD'), TO_DATE('${ENDDATE}', 'YYYY-MM-DD'), ${CNO})
+    `;
+    
+    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
+
+      res.status(200).json({ message: 'Reservation added successfully.' });
+
+      connection.close();
+    });
+  });
+});
+
 
 // 잘못된 요청에 대한 응답
 app.use((req, res) => {

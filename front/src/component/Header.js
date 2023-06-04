@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ setPage }) => {
+const Header = ({ setPage, rentalHistory }) => {
   const handleButtonClick = (value) => {
     setPage(value);
   };
