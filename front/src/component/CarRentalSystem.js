@@ -15,6 +15,7 @@ const CarRentalSystem = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [reservation, setReservation] = useState(null);
   const [reservationHistory, setReservationHistory] = useState(null);
+  const [aa, seta] = useState(null);
 
 
   const loginCustomer = async (customerNumber, password) => {
@@ -107,6 +108,7 @@ const makeReservation = (MODELNAME) => {
 
   // 예약 데이터를 상태로 업데이트합니다.
   setReservation(reservationData);
+  afunc();
 };
 
 
@@ -136,9 +138,28 @@ const cancelReservation = (reservationId) => {
           console.error('Error:', error);
         }
         rentalHistory(customer.customerNumber);
+        afunc();
   };
   
-
+  // 렌터카 예약 취소
+  const afunc = async () => {
+    try{
+      const response = await fetch(`http://localhost:3001/a`);
+      const data = await response.json();
+          if (response.ok) {
+            console.log("성공");
+            console.log(ArrayBuffer);
+            seta(data);
+            
+          } else {
+            console.log('실패');
+          }
+        } catch (error) {
+          // Handle any errors that occur during the request or login process
+          console.error('Error:', error);
+        }
+        rentalHistory(customer.customerNumber);
+  };
 
   // 렌터카 대여
 const rentCar = async (LICENSEPLATENO) => {
@@ -224,6 +245,10 @@ try{
       {customer && (
         <Header setPage={setPage} rentalHistory={rentalHistory} />
       )}
+
+      {customer && (
+        <a/>
+      )}
       {/* 렌터카 검색 컴포넌트 */}
       {customer && page == 1 && (
         <CarSearchForm onSearch={searchCars} />
@@ -253,7 +278,7 @@ try{
 
       {/* 대여 내역 */}
       {page == 2 && (
-        <RentalHistoryList rentals={reservationHistory} onCancel={realCancelReservation} />
+        <RentalHistoryList rentals={reservationHistory} info={aa} onCancel={realCancelReservation} />
         )}
 
         </div>

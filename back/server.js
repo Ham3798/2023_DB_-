@@ -15,7 +15,81 @@ const dbConfig = {
 // CORS 설정
 app.use(cors());
 
+app.get('/a', (req, res) => {
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+    
+    const query = `
+    SELECT c.ModelName, COUNT(r.LicensePlateNo) AS RentCount
+    FROM RENTCAR c
+    JOIN RENTCAR r ON c.LicensePlateNo = r.LicensePlateNo
+    GROUP BY c.ModelName
+    ORDER BY RentCount DESC
+    FETCH FIRST 1 ROWS ONLY
+    `;
+    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
 
+      res.status(200).json(result.rows);
+      connection.close();
+    });
+  });
+});
+app.get('/b', (req, res) => {
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+    
+    const query = `
+    SELECT VEHICLETYPE, AVG(RENTRATEPERDAY) AS AverageRentRate, MAX(NUMBEROFSEATS) AS MaxSeats
+    FROM CARMODEL
+    GROUP BY VEHICLETYPE
+    `;
+    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
+
+      res.status(200).json(result.rows);
+      connection.close();
+    });
+  });
+});
+app.get('/c', (req, res) => {
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+    
+    const query = `
+    SELECT MODELNAME, RENTRATEPERDAY,
+    ROW_NUMBER() OVER (PARTITION BY VEHICLETYPE ORDER BY RENTRATEPERDAY DESC) AS Rank
+    FROM CARMODEL
+    `;
+    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
+
+      res.status(200).json(result.rows);
+      connection.close();
+    });
+  });
+});
 
 app.get('/cancelResurvation/:LICENSEPLATENO/:CNO', (req, res) => {
   const LICENSEPLATENO = req.params.LICENSEPLATENO;

@@ -1,8 +1,11 @@
 import React from 'react';
 
-function RentalHistory({ rentals, onCancel }) {
+function RentalHistory({ rentals, info, onCancel }) {
   return (
     <div>
+      <h2>Info</h2>
+      <div>가장 많이 대여된 랜터카와 횟수 : {info}</div>
+
       <h2>대여 내역</h2>
       <table>
         <thead>
@@ -20,7 +23,7 @@ function RentalHistory({ rentals, onCancel }) {
               <td>{rental.LICENSEPLATENO}</td>
               <td>{rental.RESERVEDATE}</td>
               <td>{rental.STARTDATE}</td>
-              <td>{rental.ENDDATE}</td>
+              <td>{rental.NDDATE}</td>
               <td>
                 <button onClick={() => onCancel(rental.LICENSEPLATENO)}>
                   취소
