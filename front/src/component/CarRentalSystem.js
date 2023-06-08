@@ -175,6 +175,7 @@ try{
         rentalHistory(customer.customerNumber);
       } else {
         // 로그인 실패 처리
+        alert('동일한 시간에 예약한 차량이 존재합니다.');
         console.log('로그인 실패');
       }
     } catch (error) {

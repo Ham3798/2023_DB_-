@@ -240,6 +240,7 @@ console.log(vehicleTypes);
 
 
 app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res) => {
+  console.log("rentCar!");
   const STARTDATE = new Date(req.params.startDate).toISOString().split("T")[0];
   const ENDDATE = new Date(req.params.endDate).toISOString().split("T")[0];
   const carTypes = req.params.carTypes;
@@ -252,33 +253,67 @@ app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res
   const day = String(currentDate.getDate()).padStart(2, '0');
 
   const formattedDate = `${year}-${month}-${day}`;
-  
-  console.log(new Date(formattedDate).toISOString().split("T")[0]);
-  
-  oracledb.getConnection(dbConfig, (err, connection) => {
+
+  oracledb.getConnection(dbConfig, async (err, connection) => {
     if (err) {
       console.error(err.message);
       return;
     }
 
-    const query = `
-      INSERT INTO RESERVE (LICENSEPLATENO, RESERVEDATE, STARTDATE, ENDDATE, CNO)
-      VALUES ('${LICENSEPLATENO}', TO_DATE('${new Date(formattedDate).toISOString().split("T")[0]}', 'YYYY-MM-DD'), TO_DATE('${STARTDATE}', 'YYYY-MM-DD'), TO_DATE('${ENDDATE}', 'YYYY-MM-DD'), ${CNO})
+    const checkOverlapQuery = `
+    SELECT
+    CASE
+      WHEN COUNT(*) > 0 THEN 'True'
+      ELSE 'False'
+    END AS result
+  FROM RESERVE
+  WHERE CNO = ${CNO}
+    AND (
+      (STARTDATE BETWEEN TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
+      OR (ENDDATE BETWEEN TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
+      OR (STARTDATE <= TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND ENDDATE >= TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
+    )
     `;
-    
-    connection.execute(query, {}, { autoCommit: true }, (err, result) => {
+
+    const overlapResult = await connection.execute(checkOverlapQuery);
+    console.log(overlapResult);
+    if (overlapResult.rows.length) {
+      var containsTrue = false;
+      for(var i=0;i<overlapResult.rows.length;i++) {
+        if(overlapResult.rows[i][0] == 'True') {
+          containsTrue = true;
+          break;
+        }
+      }
+      if(containsTrue) {
+        res.status(400).json({ message: 'Existing reservation overlaps with requested dates.' });
+        console.log("실패1");
+        connection.close();
+      return;
+      }
+    }
+
+    const insertQuery = `
+      INSERT INTO RESERVE (LICENSEPLATENO, RESERVEDATE, STARTDATE, ENDDATE, CNO)
+      VALUES ('${LICENSEPLATENO}', TO_DATE('${formattedDate}', 'YYYY-MM-DD'), TO_DATE('${STARTDATE}', 'YYYY-MM-DD'), TO_DATE('${ENDDATE}', 'YYYY-MM-DD'), ${CNO})
+    `;
+
+    connection.execute(insertQuery, {}, { autoCommit: true }, (err, result) => {
       if (err) {
         console.error(err.message);
         connection.close();
+        console.log("실패2");
         return;
       }
 
       res.status(200).json({ message: 'Reservation added successfully.' });
-
+      console.log("성공");
       connection.close();
     });
   });
 });
+
+
 
 
 // 잘못된 요청에 대한 응답
