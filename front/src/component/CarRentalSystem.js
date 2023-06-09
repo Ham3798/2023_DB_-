@@ -15,7 +15,9 @@ const CarRentalSystem = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [reservation, setReservation] = useState(null);
   const [reservationHistory, setReservationHistory] = useState(null);
-  const [aa, seta] = useState(null);
+  const [aa, seta] = useState([]);
+  const [bb, setb] = useState([]);
+  const [cc, setc] = useState([]);
 
 
   const loginCustomer = async (customerNumber, password) => {
@@ -144,12 +146,19 @@ const cancelReservation = (reservationId) => {
   // 렌터카 예약 취소
   const afunc = async () => {
     try{
-      const response = await fetch(`http://localhost:3001/a`);
-      const data = await response.json();
-          if (response.ok) {
+      const response1 = await fetch(`http://localhost:3001/a`);
+      const data1 = await response1.json();
+      const response2 = await fetch(`http://localhost:3001/b`);
+      const data2 = await response2.json();
+      const response3 = await fetch(`http://localhost:3001/c`);
+      const data3 = await response3.json();
+          if (response1.ok && response2.ok && response3.ok) {
             console.log("성공");
             console.log(ArrayBuffer);
-            seta(data);
+            console.log(data1, data2, data3);
+            seta(data1);
+            setb(data2);
+            setc(data3);
             
           } else {
             console.log('실패');
@@ -279,7 +288,7 @@ try{
 
       {/* 대여 내역 */}
       {page == 2 && (
-        <RentalHistoryList rentals={reservationHistory} info={aa} onCancel={realCancelReservation} />
+        <RentalHistoryList rentals={reservationHistory} info1={aa} info2={bb} info3={cc} onCancel={realCancelReservation} />
         )}
 
         </div>
