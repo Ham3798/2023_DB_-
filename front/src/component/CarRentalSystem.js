@@ -5,7 +5,6 @@ import './styles.css'; // CSS 파일을 import
 import CarSearchForm from './CarSearchForm'; // CarSearchForm 컴포넌트 임포트
 import CarSearchResults from './CarSearchResults'; // CarSearchResults 컴포넌트 임포트
 import ReservationInfo from './ReservationInfo'; // ReservationInfo 컴포넌트 임포트
-import RentalHistorySearchForm from './RentalHistorySearchForm'; // RentalHistorySearchForm 컴포넌트 임포트
 import RentalHistoryList from './RentalHistoryList'; // RentalHistoryList 컴포넌트 임포트
 
 const CarRentalSystem = () => {
@@ -144,7 +143,7 @@ const cancelReservation = (reservationId) => {
         afunc();
   };
   
-  // 렌터카 예약 취소
+  // 통계 정보를 가져와 각각의 상태 함수에 저장하는 함수
   const afunc = async () => {
     try{
       const response1 = await fetch(`http://localhost:3001/a`);
