@@ -15,6 +15,38 @@ const dbConfig = {
 // CORS 설정
 app.use(cors());
 
+// GET /rentInfo - 특정 cno 값과 동일한 rentCar 정보 조회
+app.get('/rentInfo/:cno', (req, res) => {
+  // 데이터베이스 연결
+  oracledb.getConnection(dbConfig, (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+
+    const cno = req.params.cno;
+
+    connection.execute('SELECT * FROM rentCar WHERE cno = :cno', [cno], (err, result) => {
+      if (err) {
+        console.error(err.message);
+        connection.close();
+        return;
+      }
+
+      // 일치하는 렌트 정보를 찾았을 때만 결과를 반환합니다.
+      if (result.rows.length > 0) {
+        res.status(200).json(result.rows);
+      } else {
+        res.status(404).json({ error: '일치하는 렌트 정보를 찾을 수 없습니다.' });
+      }
+
+      // 연결을 닫습니다.
+      connection.close();
+    });
+  });
+});
+
+
 app.get('/a', (req, res) => {
   oracledb.getConnection(dbConfig, (err, connection) => {
     if (err) {
@@ -25,7 +57,7 @@ app.get('/a', (req, res) => {
     const query = `
     SELECT c.ModelName, COUNT(r.LicensePlateNo) AS RentCount
     FROM RENTCAR c
-    JOIN RENTCAR r ON c.LicensePlateNo = r.LicensePlateNo
+    JOIN RENTCAR r ON c .LicensePlateNo = r.LicensePlateNo
     GROUP BY c.ModelName
     ORDER BY RentCount DESC
     FETCH FIRST 1 ROWS ONLY
@@ -325,3 +357,78 @@ app.use((req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+function updateDatabase() {
+  console.log("update!");
+  oracledb.getConnection(dbConfig, async (err, connection) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    }
+
+    try {
+      console.log("execute!");
+
+      // 1. Update RENTCAR table
+      let query = `
+        UPDATE RENTCAR
+        SET (DATERENTED, DATEDUE, CNO) = (
+            SELECT STARTDATE, ENDDATE, CNO
+            FROM (
+                SELECT LICENSEPLATENO, STARTDATE, ENDDATE, CNO,
+                    ROW_NUMBER() OVER(PARTITION BY LICENSEPLATENO ORDER BY STARTDATE DESC) as rn
+                FROM RESERVE
+                WHERE ENDDATE <= SYSDATE
+            ) WHERE rn = 1 AND LICENSEPLATENO = RENTCAR.LICENSEPLATENO
+        )
+        WHERE LICENSEPLATENO IN (
+            SELECT LICENSEPLATENO
+            FROM RESERVE
+            WHERE STARTDATE <= SYSDATE
+        )
+      `;
+      await connection.execute(query, {}, { autoCommit: true });
+
+      // 2. Insert into PREVIOUSRENTAL
+      query = `
+        INSERT INTO PREVIOUSRENTAL (LICENSEPLATENO, DATERENTED, DATERETURNED, PAYMENT, CNO)
+        SELECT R.LICENSEPLATENO, R.DATERENTED, R.DATEDUE, 
+               (R.DATEDUE - R.DATERENTED + 1) * C.RENTRATEPERDAY AS PAYMENT, R.CNO
+        FROM RENTCAR R
+        JOIN CARMODEL C ON R.MODELNAME = C.MODELNAME
+        WHERE R.DATEDUE <= SYSDATE
+        AND NOT EXISTS (
+            SELECT 1 
+            FROM PREVIOUSRENTAL P 
+            WHERE P.LICENSEPLATENO = R.LICENSEPLATENO AND P.DATERENTED = R.DATERENTED AND P.DATERETURNED = R.DATEDUE AND P.CNO = R.CNO
+        )
+      `;
+      await connection.execute(query, {}, { autoCommit: true });
+      
+      // 3. Delete relevant rows from RESERVE
+      query = `
+        DELETE FROM RESERVE
+        WHERE ENDDATE <= SYSDATE
+      `;
+      await connection.execute(query, {}, { autoCommit: true });
+
+      // 4. Update RENTCAR again
+      query = `
+        UPDATE RENTCAR
+        SET DATERENTED = NULL, DATEDUE = NULL, CNO = NULL
+        WHERE DATEDUE <= SYSDATE
+      `;
+      await connection.execute(query, {}, { autoCommit: true });
+
+    } catch (err) {
+      console.error(err.message);
+    } finally {
+      // Ensure the connection is always closed
+      connection.close();
+    }
+  });
+}
+
+
+
+// setInterval(updateDatabase, 10000);

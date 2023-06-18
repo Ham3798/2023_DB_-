@@ -7,11 +7,11 @@ const CarSearchResults = ({ results, onDetails }) => {
       <table>
         <thead>
           <tr>
+            <th>LICENSEPLATENO</th>
             <th>MODELNAME</th>
-            <th>VEHICLETYPE</th>
-            <th>RENTRATEPERDAY</th>
-            <th>FUEL</th>
-            <th>NUMBEROFSEATS</th>
+            <th>DATERENTED</th>
+            <th>DATEDUE</th>
+            <th>CNO</th>
           </tr>
         </thead>
         <tbody>
@@ -19,8 +19,8 @@ const CarSearchResults = ({ results, onDetails }) => {
             <tr key={car.LICENSEPLATENO}>
               <td>{car.LICENSEPLATENO}</td>
               <td>{car.MODELNAME}</td>
-              <td>{car.DATERENTED}</td>
-              <td>{car.DATEDUE}</td>
+              <td>{car.DATERENTED ? car.DATERENTED.split('T')[0] : 'N/A'}</td>
+              <td>{car.DATEDUE ? car.DATEDUE.split('T')[0] : 'N/A'}</td>
               <td>{car.CNO}</td>
               <td>
                 <button onClick={() => onDetails(car.LICENSEPLATENO)}>상세 정보</button>

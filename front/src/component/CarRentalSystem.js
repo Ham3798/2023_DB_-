@@ -15,6 +15,7 @@ const CarRentalSystem = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [reservation, setReservation] = useState(null);
   const [reservationHistory, setReservationHistory] = useState(null);
+  const [reservationHistory2, setReservationHistory2] = useState(null);
   const [aa, seta] = useState([]);
   const [bb, setb] = useState([]);
   const [cc, setc] = useState([]);
@@ -157,8 +158,16 @@ const cancelReservation = (reservationId) => {
             console.log(ArrayBuffer);
             console.log(data1, data2, data3);
             seta(data1);
-            setb(data2);
-            setc(data3);
+            setb([])
+            for (let i = 0; i < data2.length; i++) {
+              const cur = data2[i];
+              setb(prevState => [...prevState, {VEHICLETYPE:cur[0], AVERAGERENTRATE:cur[1], MAXSEATS:cur[2]}]);
+            }
+            setc([])
+            for (let i = 0; i < data3.length; i++) {
+              const cur = data3[i];
+              setc(prevState => [...prevState, {MODELNAME:cur[0], RENTRATEPERDAY:cur[1], RANK:cur[2]}]);
+            }
             
           } else {
             console.log('실패');
@@ -198,7 +207,7 @@ const rentalHistory = async (CNO) => {
   // 실제로는 데이터베이스나 API와의 통신 등을 통해 대여 동작을 수행해야 합니다.
 try{
   const response = await fetch(`http://localhost:3001/resurveHistory/${CNO}`);
-      const data = await response.json();
+  const data = await response.json();
       if (response.ok) {
         // 로그인 성공
         var searchResultsData = []
@@ -207,6 +216,7 @@ try{
           searchResultsData.push({LICENSEPLATENO:cur[0], RESERVEDATE:cur[1], STARTDATE:cur[2], ENDDATE:cur[3], CNO:cur[4]});
         }
         setReservationHistory(searchResultsData);
+        
       } else {
         // 로그인 실패 처리
         console.log('로그인 실패');
@@ -215,7 +225,19 @@ try{
       // Handle any errors that occur during the request or login process
       console.error('Error:', error);
     }
-    
+    try {
+      const response2 = await fetch(`http://localhost:3001/rentInfo/${CNO}`);
+      const data2 = await response2.json();
+      var searchResultsData2 = []
+            for (let i = 0; i < data2.length; i++) {
+              const cur = data2[i];
+              searchResultsData2.push({LICENSEPLATENO:cur[0], MODELNAME:cur[1], DATERENTED:cur[2], DATEDUE:cur[3], CNO:cur[4]});
+            }
+            setReservationHistory2(searchResultsData2);
+      }
+      catch (error) {
+        console.error('Error:', error);
+      }
 };
 
 // // 대여 내역 업데이트
@@ -288,7 +310,7 @@ try{
 
       {/* 대여 내역 */}
       {page == 2 && (
-        <RentalHistoryList rentals={reservationHistory} info1={aa} info2={bb} info3={cc} onCancel={realCancelReservation} />
+        <RentalHistoryList reserves={reservationHistory2} rentals={reservationHistory} info1={aa} info2={bb} info3={cc} onCancel={realCancelReservation} />
         )}
 
         </div>
