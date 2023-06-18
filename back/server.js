@@ -46,7 +46,7 @@ app.get('/rentInfo/:cno', (req, res) => {
   });
 });
 
-
+// 가장 많이 렌트된 차량 모델
 app.get('/a', (req, res) => {
   oracledb.getConnection(dbConfig, (err, connection) => {
     if (err) {
@@ -74,6 +74,8 @@ app.get('/a', (req, res) => {
     });
   });
 });
+
+//VEHICLETYPE 별 정보
 app.get('/b', (req, res) => {
   oracledb.getConnection(dbConfig, (err, connection) => {
     if (err) {
@@ -98,6 +100,9 @@ app.get('/b', (req, res) => {
     });
   });
 });
+
+
+//차량의 인기 랭킹
 app.get('/c', (req, res) => {
   oracledb.getConnection(dbConfig, (err, connection) => {
     if (err) {
@@ -123,6 +128,7 @@ app.get('/c', (req, res) => {
   });
 });
 
+// 예약 취소
 app.get('/cancelResurvation/:LICENSEPLATENO/:CNO', (req, res) => {
   const LICENSEPLATENO = req.params.LICENSEPLATENO;
   const CNO = req.params.CNO;
@@ -153,6 +159,7 @@ app.get('/cancelResurvation/:LICENSEPLATENO/:CNO', (req, res) => {
   });
 });
 
+// 예약 내역 조회
 app.get('/resurveHistory/:CNO', (req, res) => {
   const CNO = req.params.CNO;
 
@@ -215,34 +222,38 @@ app.get('/customer/:cno/:password', (req, res) => {
 });
 
 app.get('/getCar/:startDate/:endDate/:vehicleTypes', (req, res) => {
-// const startDate = new Date('Sat Jun 03 2023');
-// const endDate = new Date('Sat Jun 03 2023');
-// var vehicleTypes = ['대형', '중형', '소형'];
-const startDate = new Date(req.params.startDate).toISOString().split("T")[0];
-const endDate = new Date(req.params.endDate).toISOString().split("T")[0];
-let vehicleTypes = req.params.vehicleTypes;
-vehicleTypes = vehicleTypes.replace(/\s/g, "");
-vehicleTypes = vehicleTypes.split(",");
-console.log(startDate, endDate, vehicleTypes);
-var str;
-for (let i = 0; i < vehicleTypes.length; i++) {
-  const type = vehicleTypes[i];
-  if (i === 0) {
-    str = `VEHICLETYPE = \'${type}\'`;
-  } else {
-    str += ` or VEHICLETYPE = \'${type}\'`;
+  // 요청된 시작일과 종료일을 받아옵니다.
+  const startDate = new Date(req.params.startDate).toISOString().split("T")[0];
+  const endDate = new Date(req.params.endDate).toISOString().split("T")[0];
+  
+  // 요청된 차량 종류를 받아옵니다.
+  let vehicleTypes = req.params.vehicleTypes;
+  vehicleTypes = vehicleTypes.replace(/\s/g, "");
+  vehicleTypes = vehicleTypes.split(",");
+  console.log(startDate, endDate, vehicleTypes);
+  
+  // 차량 종류에 따라 SQL 쿼리에 사용될 문자열을 생성합니다.
+  var str;
+  for (let i = 0; i < vehicleTypes.length; i++) {
+    const type = vehicleTypes[i];
+    if (i === 0) {
+      str = `VEHICLETYPE = \'${type}\'`;
+    } else {
+      str += ` or VEHICLETYPE = \'${type}\'`;
+    }
   }
-}
+  
+  vehicleTypes = str;
+  console.log(vehicleTypes);
 
-vehicleTypes = str;
-console.log(vehicleTypes);
-
+  // Oracle 데이터베이스에 연결합니다.
   oracledb.getConnection(dbConfig, (err, connection) => {
     if (err) {
       console.error(err.message);
       return;
     }
 
+    // 렌트카 정보를 조회하기 위한 SQL 쿼리를 생성합니다.
     const query = `
       SELECT *
       FROM RENTCAR
@@ -256,6 +267,7 @@ console.log(vehicleTypes);
       )
     `;
     
+    // 생성된 SQL 쿼리를 실행하여 렌트카 정보를 조회합니다.
     connection.execute(query, (err, result) => {
       if (err) {
         console.error(err.message);
@@ -263,8 +275,10 @@ console.log(vehicleTypes);
         return;
       }
       
+      // 조회된 결과를 응답합니다.
       res.status(200).json(result.rows);
 
+      // 연결을 닫습니다.
       connection.close();
     });
   });
@@ -273,12 +287,15 @@ console.log(vehicleTypes);
 
 app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res) => {
   console.log("rentCar!");
+  
+  // 요청된 정보를 변수에 할당합니다.
   const STARTDATE = new Date(req.params.startDate).toISOString().split("T")[0];
   const ENDDATE = new Date(req.params.endDate).toISOString().split("T")[0];
   const carTypes = req.params.carTypes;
   const LICENSEPLATENO = req.params.LICENSEPLATENO;
   const CNO = req.params.CNO;
 
+  // 현재 날짜를 얻어옵니다.
   const currentDate = new Date();
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -286,27 +303,30 @@ app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res
 
   const formattedDate = `${year}-${month}-${day}`;
 
+  // Oracle 데이터베이스에 연결합니다.
   oracledb.getConnection(dbConfig, async (err, connection) => {
     if (err) {
       console.error(err.message);
       return;
     }
 
+    // 예약 기간 중에 이미 다른 예약과 겹치는지 확인하기 위한 쿼리를 생성합니다.
     const checkOverlapQuery = `
     SELECT
     CASE
       WHEN COUNT(*) > 0 THEN 'True'
       ELSE 'False'
     END AS result
-  FROM RESERVE
-  WHERE CNO = ${CNO}
-    AND (
-      (STARTDATE BETWEEN TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
-      OR (ENDDATE BETWEEN TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
-      OR (STARTDATE <= TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND ENDDATE >= TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
-    )
+    FROM RESERVE
+    WHERE CNO = ${CNO}
+      AND (
+        (STARTDATE BETWEEN TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
+        OR (ENDDATE BETWEEN TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
+        OR (STARTDATE <= TO_DATE('${STARTDATE}', 'YYYY-MM-DD') AND ENDDATE >= TO_DATE('${ENDDATE}', 'YYYY-MM-DD'))
+      )
     `;
 
+    // 겹치는 예약이 있는지 확인하는 쿼리를 실행합니다.
     const overlapResult = await connection.execute(checkOverlapQuery);
     console.log(overlapResult);
     if (overlapResult.rows.length) {
@@ -318,18 +338,21 @@ app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res
         }
       }
       if(containsTrue) {
+        // 겹치는 예약이 있을 경우 에러 응답을 반환하고 종료합니다.
         res.status(400).json({ message: 'Existing reservation overlaps with requested dates.' });
         console.log("실패1");
         connection.close();
-      return;
+        return;
       }
     }
 
+    // 예약 정보를 추가하기 위한 쿼리를 생성합니다.
     const insertQuery = `
       INSERT INTO RESERVE (LICENSEPLATENO, RESERVEDATE, STARTDATE, ENDDATE, CNO)
       VALUES ('${LICENSEPLATENO}', TO_DATE('${formattedDate}', 'YYYY-MM-DD'), TO_DATE('${STARTDATE}', 'YYYY-MM-DD'), TO_DATE('${ENDDATE}', 'YYYY-MM-DD'), ${CNO})
     `;
 
+    // 생성된 쿼리를 실행하여 예약 정보를 추가합니다.
     connection.execute(insertQuery, {}, { autoCommit: true }, (err, result) => {
       if (err) {
         console.error(err.message);
@@ -338,6 +361,7 @@ app.get('/rentCar/:LICENSEPLATENO/:carTypes/:startDate/:endDate/:CNO', (req, res
         return;
       }
 
+      // 예약이 성공적으로 추가되었을 때 성공 응답을 반환합니다.
       res.status(200).json({ message: 'Reservation added successfully.' });
       console.log("성공");
       connection.close();
